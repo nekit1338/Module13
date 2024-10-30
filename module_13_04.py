@@ -1,6 +1,7 @@
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 import asyncio
+from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
 api = ""
@@ -26,27 +27,34 @@ async def set_age(message):
 
 
 @dp.message_handler(state=UserState.age)
-async def set_growth(message):
+async def set_growth(message, state):
+    await state.update_data(age=message.text)
     await message.answer('Введите ваш рост')
     await UserState.growth.set()
 
 
 @dp.message_handler(state=UserState.growth)
-async def set_weight(message):
+async def set_weight(message, state):
+    await state.update_data(growth=message.text)
     await message.answer('Введите ваш вес')
     await UserState.weight.set()
+
+
+def calculate_calories(age, growth, weight):
+    norma = 10 * weight + 6.25 * growth - 5 * age + 5
+    return norma
 
 
 @dp.message_handler(state=UserState.weight)
 async def send_calories(message, state):
     await state.update_data(weight=message.text)
-    await state.update_data(age=message.text)
-    await state.update_data(growth=message.text)
     data = await state.get_data()
-    calories_for_woman = 10 * int(data['weight']) + 6.25 * int(data['growth']) - 5 * int(data['age']) - 161
-    calories_for_men = 10 * int(data['weight']) + 6.25 * int(data['growth']) - 5 * int(data['age']) + 5
-    await message.answer(f'Для женщин от 13 до 80 лет норма калорий - {calories_for_woman} ккал\nДля мужчин от 13 до '
-                         f'80 лет норма калорий - {calories_for_men} ккал')
+    age = int(data.get('age'))
+    growth = int(data.get('growth'))
+    weight = int(data.get('weight'))
+    calories = calculate_calories(age, growth, weight)
+    await message.answer(f'Ваша норма калорий - {calories} ккал')
+    await state.finish()
 
 
 @dp.message_handler()
