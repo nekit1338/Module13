@@ -45,7 +45,6 @@ async def start(message):
 async def set_age(call):
     await call.message.answer('Введите ваш возраст')
     await UserState.age.set()
-    await call.answer()
 
 
 @dp.message_handler(state=UserState.age)
